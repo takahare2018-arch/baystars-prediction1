@@ -25,8 +25,16 @@
                 <span>🎮 試合状況を入力</span>
                 <button id="resetBtn" class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600 hover:bg-gray-300">リセット</button>
             </h2>
+
+            <div>
+                <label class="block text-xs text-gray-500 font-bold mb-1">開催地 (先攻/後攻)</label>
+                <select id="homeVisitor" class="w-full border-2 border-blue-200 rounded-lg p-2 bg-white font-bold text-blue-800">
+                    <option value="home">🏠 ホーム (DeNA後攻)</option>
+                    <option value="visitor">✈️ ビジター (DeNA先攻)</option>
+                </select>
+            </div>
             
-            <div class="flex justify-between items-center gap-4">
+            <div class="flex justify-between items-center gap-4 border-t pt-4">
                 <div class="text-center flex-1">
                     <label class="block text-xs text-blue-700 font-bold mb-1">DeNA</label>
                     <select id="denaScore" class="w-full text-2xl font-bold border-2 border-blue-200 rounded-lg p-2 bg-blue-50 text-blue-800"></select>
@@ -50,8 +58,8 @@
                 <div>
                     <label class="block text-xs text-gray-500 font-bold mb-1">表/裏</label>
                     <select id="topBottom" class="w-full border rounded p-2 bg-gray-50 font-bold">
-                        <option value="top">表 (相手攻撃)</option>
-                        <option value="bottom" selected>裏 (DeNA攻撃)</option>
+                        <option value="top">表</option>
+                        <option value="bottom">裏</option>
                     </select>
                 </div>
                 <div>
@@ -106,48 +114,63 @@
             options: { responsive: true, plugins: { legend: { display: false } } }
         });
 
-        // 3. 勝率計算 ＆ データ保存（★進化した野球ロジック）
+        // 3. 勝率計算 ＆ データ保存
         function calculateAndSave() {
+            const homeVisitor = document.getElementById('homeVisitor').value;
             const dena = parseInt(document.getElementById('denaScore').value);
             const opp = parseInt(document.getElementById('oppScore').value);
             const inning = parseInt(document.getElementById('inning').value);
-            const topBottom = document.getElementById('topBottom').value; // 'top' or 'bottom'
+            const topBottom = document.getElementById('topBottom').value;
             const outs = parseInt(document.getElementById('outs').value);
             const runners = parseInt(document.getElementById('runners').value);
 
+            // ★ ホーム/ビジター設定に合わせて「表/裏」の表記を自動更新
+            const topOption = document.querySelector('#topBottom option[value="top"]');
+            const bottomOption = document.querySelector('#topBottom option[value="bottom"]');
+            if (homeVisitor === 'home') {
+                topOption.text = "表 (相手攻撃)";
+                bottomOption.text = "裏 (DeNA攻撃)";
+            } else {
+                topOption.text = "表 (DeNA攻撃)";
+                bottomOption.text = "裏 (相手攻撃)";
+            }
+
             // 状態の保存
-            const gameData = { dena, opp, inning, topBottom, outs, runners };
+            const gameData = { homeVisitor, dena, opp, inning, topBottom, outs, runners };
             localStorage.setItem('baystarsGameData', JSON.stringify(gameData));
 
             let baseRate = 50;
             const scoreDiff = dena - opp;
             
-            // ① 点数差のベース計算（終盤ほど点差の影響が大きくなる）
+            // ① 点数差のベース計算
             baseRate += scoreDiff * (10 + inning * 2);
 
-            // ② 攻撃チームごとの有利不利を計算
-            const isDeNA_Batting = (topBottom === 'bottom'); // DeNAを後攻(裏)と想定
-            let situationAdvantage = 0;
+            // ② 攻撃チームの判定と有利不利の計算
+            let isDeNA_Batting = false;
+            if (homeVisitor === 'home' && topBottom === 'bottom') {
+                isDeNA_Batting = true; // ホームで裏の攻撃
+            } else if (homeVisitor === 'visitor' && topBottom === 'top') {
+                isDeNA_Batting = true; // ビジターで表の攻撃
+            }
 
+            let situationAdvantage = 0;
             if (isDeNA_Batting) {
-                // DeNAの攻撃中：ランナーはプラス、アウトが増えるとマイナス
+                // DeNA攻撃中
                 if (runners === 1) situationAdvantage += 3;
                 if (runners === 2) situationAdvantage += 6;
                 if (runners === 3) situationAdvantage += 10;
-                
                 if (outs === 0) situationAdvantage += 2;
-                if (outs === 2) situationAdvantage -= 4; // 2アウトでチャンス減少
+                if (outs === 2) situationAdvantage -= 4;
             } else {
-                // 相手の攻撃中（DeNA守備）：ランナーはマイナス、アウトが増えるとプラス（ピンチ脱出）
+                // 相手攻撃中（DeNA守備）
                 if (runners === 1) situationAdvantage -= 3;
                 if (runners === 2) situationAdvantage -= 6;
                 if (runners === 3) situationAdvantage -= 10;
-                
-                if (outs === 0) situationAdvantage -= 2; // ノーアウトはピンチ
-                if (outs === 2) situationAdvantage += 4; // 2アウトで一安心
+                if (outs === 0) situationAdvantage -= 2;
+                if (outs === 2) situationAdvantage += 4;
             }
 
-            // 終盤（イニングが進む）ほど、ランナーやアウト状況の重みが増すように係数をかける
+            // イニングに応じた重み付け
             const inningFactor = 1 + (inning / 5); 
             baseRate += situationAdvantage * inningFactor;
 
@@ -165,10 +188,11 @@
             const savedData = localStorage.getItem('baystarsGameData');
             if (savedData) {
                 const data = JSON.parse(savedData);
+                document.getElementById('homeVisitor').value = data.homeVisitor || 'home';
                 document.getElementById('denaScore').value = data.dena || 0;
                 document.getElementById('oppScore').value = data.opp || 0;
                 document.getElementById('inning').value = data.inning || 1;
-                document.getElementById('topBottom').value = data.topBottom || 'bottom';
+                document.getElementById('topBottom').value = data.topBottom || 'top'; // topをデフォルトに
                 document.getElementById('outs').value = data.outs || 0;
                 document.getElementById('runners').value = data.runners || 0;
             }
@@ -182,6 +206,7 @@
 
         document.getElementById('resetBtn').addEventListener('click', () => {
             if(confirm("状況を初期化しますか？")) {
+                document.getElementById('homeVisitor').value = 'home';
                 document.getElementById('denaScore').value = 0;
                 document.getElementById('oppScore').value = 0;
                 document.getElementById('inning').value = 1;
@@ -196,6 +221,7 @@
         loadSavedData();
     </script>
 </body>
+</html>
 
 
 
