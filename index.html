@@ -103,7 +103,8 @@
                     <span class="text-yellow-400 font-bold text-xl w-6 text-right">S</span>
                     <div class="w-6 h-6 rounded-full border-2 border-yellow-400 transition-colors" id="s1"></div>
                     <div class="w-6 h-6 rounded-full border-2 border-yellow-400 transition-colors" id="s2"></div>
-                    <div class="w-6 h-6 opacity-0"></div> </div>
+                    <div class="w-6 h-6 opacity-0"></div>
+                </div>
                 <div class="flex items-center gap-3 cursor-pointer bso-row select-none justify-center" onclick="incrementBSO('O')">
                     <span class="text-red-500 font-bold text-xl w-6 text-right">O</span>
                     <div class="w-6 h-6 rounded-full border-2 border-red-500 transition-colors" id="o1"></div>
@@ -118,7 +119,234 @@
 
             <div>
                 <label class="block text-xs text-gray-500 font-bold mb-1">ランナー</label>
-                <select id="runners" class="w-
+                <select id="runners" class="w-full border rounded p-2 bg-gray-50 font-bold text-green-700">
+                    <option value="0">なし</option>
+                    <option value="1">1塁</option>
+                    <option value="2">得点圏 (2塁/3塁)</option>
+                    <option value="3">満塁</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm text-center">
+            <h2 class="font-bold text-lg border-b pb-2 baystars-text mb-4">📊 リアルタイム予想</h2>
+            <div class="flex justify-center items-end gap-3 mb-2">
+                <div class="text-2xl font-black text-blue-700" id="totalDena">DeNA 0</div>
+                <div class="text-gray-400 font-bold">-</div>
+                <div class="text-2xl font-black text-gray-700" id="totalOpp">相手 0</div>
+            </div>
+            
+            <div class="text-3xl font-black baystars-text mb-4">
+                勝率: <span id="winRateDisplay">50</span>%
+            </div>
+            
+            <div class="w-48 h-48 mx-auto">
+                <canvas id="predictionChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let denaInnings = ["","","","","","","","",""];
+        let oppInnings = ["","","","","","","","",""];
+        let denaTotalScore = 0;
+        let oppTotalScore = 0;
+
+        const ctx = document.getElementById('predictionChart').getContext('2d');
+        let predictionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['DeNA勝利', '相手の勝利/引き分け'],
+                datasets: [{ data: [50, 50], backgroundColor: ['#0055A5', '#CBD5E1'], borderWidth: 0 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+        });
+
+        function renderScoreboard() {
+            const homeVisitor = document.getElementById('homeVisitor').value;
+            const tbody = document.getElementById('scoreboardBody');
+            tbody.innerHTML = ''; 
+
+            const createRow = (teamName, inningsData, isDeNA) => {
+                let row = `<tr class="${isDeNA ? 'bg-blue-50 text-blue-800 font-bold' : 'bg-white text-gray-700'}">`;
+                row += `<td class="p-1 border text-center text-xs">${teamName}</td>`;
+                
+                for (let i = 0; i < 9; i++) {
+                    row += `<td class="p-0 border text-center">
+                                <input type="number" inputmode="numeric" class="score-input" 
+                                data-team="${isDeNA ? 'dena' : 'opp'}" data-inning="${i}" value="${inningsData[i]}">
+                            </td>`;
+                }
+                
+                const total = inningsData.reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+                if (isDeNA) denaTotalScore = total; else oppTotalScore = total;
+                
+                row += `<td class="p-1 border text-center font-black text-base bg-gray-100">${total}</td></tr>`;
+                return row;
+            };
+
+            if (homeVisitor === 'home') {
+                tbody.innerHTML += createRow('相手', oppInnings, false);
+                tbody.innerHTML += createRow('DeNA', denaInnings, true);
+            } else {
+                tbody.innerHTML += createRow('DeNA', denaInnings, true);
+                tbody.innerHTML += createRow('相手', oppInnings, false);
+            }
+
+            document.querySelectorAll('.score-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const team = e.target.dataset.team;
+                    const innIdx = parseInt(e.target.dataset.inning);
+                    const val = e.target.value;
+                    
+                    if (team === 'dena') denaInnings[innIdx] = val;
+                    else oppInnings[innIdx] = val;
+                    
+                    renderScoreboard(); 
+                    calculateAndSave(); 
+                });
+            });
+
+            document.getElementById('totalDena').innerText = `DeNA ${denaTotalScore}`;
+            document.getElementById('totalOpp').innerText = `相手 ${oppTotalScore}`;
+        }
+
+        function incrementBSO(type) {
+            if (type === 'B') {
+                let b = parseInt(document.getElementById('balls').value);
+                document.getElementById('balls').value = (b + 1) % 4; 
+            } else if (type === 'S') {
+                let s = parseInt(document.getElementById('strikes').value);
+                document.getElementById('strikes').value = (s + 1) % 3; 
+            } else if (type === 'O') {
+                let o = parseInt(document.getElementById('outs').value);
+                document.getElementById('outs').value = (o + 1) % 3; 
+            }
+            updateBSOUI();
+            calculateAndSave();
+        }
+
+        function updateBSOUI() {
+            const b = parseInt(document.getElementById('balls').value);
+            const s = parseInt(document.getElementById('strikes').value);
+            const o = parseInt(document.getElementById('outs').value);
+
+            document.getElementById('b1').className = `w-6 h-6 rounded-full border-2 border-green-500 transition-colors ${b >= 1 ? 'bg-green-500' : ''}`;
+            document.getElementById('b2').className = `w-6 h-6 rounded-full border-2 border-green-500 transition-colors ${b >= 2 ? 'bg-green-500' : ''}`;
+            document.getElementById('b3').className = `w-6 h-6 rounded-full border-2 border-green-500 transition-colors ${b >= 3 ? 'bg-green-500' : ''}`;
+
+            document.getElementById('s1').className = `w-6 h-6 rounded-full border-2 border-yellow-400 transition-colors ${s >= 1 ? 'bg-yellow-400' : ''}`;
+            document.getElementById('s2').className = `w-6 h-6 rounded-full border-2 border-yellow-400 transition-colors ${s >= 2 ? 'bg-yellow-400' : ''}`;
+
+            document.getElementById('o1').className = `w-6 h-6 rounded-full border-2 border-red-500 transition-colors ${o >= 1 ? 'bg-red-500' : ''}`;
+            document.getElementById('o2').className = `w-6 h-6 rounded-full border-2 border-red-500 transition-colors ${o >= 2 ? 'bg-red-500' : ''}`;
+        }
+
+        function calculateAndSave() {
+            const homeVisitor = document.getElementById('homeVisitor').value;
+            const inning = parseInt(document.getElementById('inning').value);
+            const topBottom = document.getElementById('topBottom').value;
+            const balls = parseInt(document.getElementById('balls').value);
+            const strikes = parseInt(document.getElementById('strikes').value);
+            const outs = parseInt(document.getElementById('outs').value);
+            const runners = parseInt(document.getElementById('runners').value);
+
+            const topOption = document.querySelector('#topBottom option[value="top"]');
+            const bottomOption = document.querySelector('#topBottom option[value="bottom"]');
+            if (homeVisitor === 'home') {
+                topOption.text = "表 (相手攻撃)";
+                bottomOption.text = "裏 (DeNA攻撃)";
+            } else {
+                topOption.text = "表 (DeNA攻撃)";
+                bottomOption.text = "裏 (相手攻撃)";
+            }
+
+            const gameData = { homeVisitor, denaInnings, oppInnings, inning, topBottom, balls, strikes, outs, runners };
+            localStorage.setItem('baystarsGameData', JSON.stringify(gameData));
+
+            let baseRate = 50;
+            const scoreDiff = denaTotalScore - oppTotalScore;
+            baseRate += scoreDiff * (10 + inning * 2);
+
+            let isDeNA_Batting = (homeVisitor === 'home' && topBottom === 'bottom') || (homeVisitor === 'visitor' && topBottom === 'top');
+            let situationAdvantage = 0;
+
+            if (isDeNA_Batting) {
+                if (runners === 1) situationAdvantage += 3;
+                if (runners === 2) situationAdvantage += 6;
+                if (runners === 3) situationAdvantage += 10;
+                if (outs === 0) situationAdvantage += 2;
+                if (outs === 2) situationAdvantage -= 4;
+                situationAdvantage += balls * 0.5;
+                situationAdvantage -= strikes * 0.5;
+            } else {
+                if (runners === 1) situationAdvantage -= 3;
+                if (runners === 2) situationAdvantage -= 6;
+                if (runners === 3) situationAdvantage -= 10;
+                if (outs === 0) situationAdvantage -= 2;
+                if (outs === 2) situationAdvantage += 4;
+                situationAdvantage -= balls * 0.5;
+                situationAdvantage += strikes * 0.5;
+            }
+
+            const inningFactor = 1 + (inning / 5); 
+            baseRate += situationAdvantage * inningFactor;
+            let finalRate = Math.min(Math.max(Math.round(baseRate), 1), 99);
+
+            document.getElementById('winRateDisplay').innerText = finalRate;
+            predictionChart.data.datasets[0].data = [finalRate, 100 - finalRate];
+            predictionChart.update();
+        }
+
+        function loadSavedData() {
+            const savedData = localStorage.getItem('baystarsGameData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                document.getElementById('homeVisitor').value = data.homeVisitor || 'home';
+                denaInnings = data.denaInnings || ["","","","","","","","",""];
+                oppInnings = data.oppInnings || ["","","","","","","","",""];
+                document.getElementById('inning').value = data.inning || 1;
+                document.getElementById('topBottom').value = data.topBottom || 'top';
+                document.getElementById('balls').value = data.balls || 0;
+                document.getElementById('strikes').value = data.strikes || 0;
+                document.getElementById('outs').value = data.outs || 0;
+                document.getElementById('runners').value = data.runners || 0;
+            }
+            renderScoreboard();
+            updateBSOUI(); 
+            calculateAndSave();
+        }
+
+        document.querySelectorAll('select').forEach(el => {
+            el.addEventListener('change', () => {
+                if (el.id === 'homeVisitor') renderScoreboard(); 
+                calculateAndSave();
+            });
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if(confirm("すべての状況とスコアボードを初期化しますか？")) {
+                document.getElementById('homeVisitor').value = 'home';
+                denaInnings = ["","","","","","","","",""];
+                oppInnings = ["","","","","","","","",""];
+                document.getElementById('inning').value = 1;
+                document.getElementById('topBottom').value = 'top';
+                document.getElementById('balls').value = 0;
+                document.getElementById('strikes').value = 0;
+                document.getElementById('outs').value = 0;
+                document.getElementById('runners').value = 0;
+                renderScoreboard();
+                updateBSOUI(); 
+                calculateAndSave();
+            }
+        });
+
+        loadSavedData();
+    </script>
+</body>
+</html>
+
 
 
 
