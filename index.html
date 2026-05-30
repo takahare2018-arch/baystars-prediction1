@@ -3,78 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ベイスターズ リアルタイム予想ダッシュボード</title>
+    <title>ベイスターズ リアルタイム予想アプリ</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .baystars-blue { background-color: #0055A5; }
         .baystars-text { color: #0055A5; }
+        /* セレクトボックスをスマホの中央揃えっぽくする調整 */
+        select { text-align-last: center; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen pb-10">
 
     <header class="baystars-blue text-white p-4 text-center font-bold text-xl shadow-md">
-        🌟 横浜DeNA 試合＆予想ダッシュボード
+        🌟 DeNA 勝敗予想シミュレーター
     </header>
 
     <div class="max-w-md mx-auto p-4 space-y-6">
         
-        <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-600 space-y-4">
-            <div>
-                <h2 class="text-sm text-gray-500 font-bold mb-1" id="matchDate">試合データを読み込み中...</h2>
-                <div class="flex justify-between items-center text-lg font-black">
-                    <div class="text-blue-700">DeNA</div>
-                    <div class="text-gray-400 text-sm">VS</div>
-                    <div id="opponentName" class="text-gray-700">対戦相手</div>
-                </div>
-                <div class="flex justify-between mt-2 text-sm border-t pt-2">
-                    <div>先発: <span id="denaPitcher" class="font-bold text-blue-700">--</span></div>
-                    <div>先発: <span id="oppPitcher" class="font-bold">--</span></div>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-center text-sm border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-600" id="inningHeaders">
-                            <th class="p-1 border">チーム</th>
-                            <th class="p-1 border font-bold text-red-500">計</th>
-                        </tr>
-                    </thead>
-                    <tbody id="scoreBody">
-                        </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl shadow-sm space-y-4">
-            <h2 class="font-bold text-lg border-b pb-2 baystars-text">📊 勝敗シミュレーター</h2>
-            <p class="text-xs text-gray-500">※スコアボードの点数が自動入力されています</p>
+        <div class="bg-white p-4 rounded-xl shadow-sm space-y-5">
+            <h2 class="font-bold text-lg border-b pb-2 text-gray-700 flex justify-between items-center">
+                <span>🎮 試合状況を入力</span>
+                <button id="resetBtn" class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">リセット</button>
+            </h2>
             
             <div class="flex justify-between items-center gap-4">
                 <div class="text-center flex-1">
-                    <label class="block text-xs text-gray-500 font-bold">DeNA</label>
-                    <input type="number" id="denaScore" value="0" min="0" class="w-full text-center text-2xl font-bold border rounded p-2 bg-blue-50">
+                    <label class="block text-xs text-blue-700 font-bold mb-1">DeNA</label>
+                    <select id="denaScore" class="w-full text-2xl font-bold border-2 border-blue-200 rounded-lg p-2 bg-blue-50 text-blue-800"></select>
                 </div>
                 <div class="text-xl font-bold text-gray-400 mt-4">-</div>
                 <div class="text-center flex-1">
-                    <label class="block text-xs text-gray-500 font-bold">相手</label>
-                    <input type="number" id="oppScore" value="0" min="0" class="w-full text-center text-2xl font-bold border rounded p-2 bg-gray-50">
+                    <label class="block text-xs text-gray-500 font-bold mb-1">相手</label>
+                    <select id="oppScore" class="w-full text-2xl font-bold border-2 border-gray-200 rounded-lg p-2 bg-gray-50 text-gray-700"></select>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs text-gray-500 font-bold mb-1">イニング</label>
-                    <select id="inning" class="w-full border rounded p-2 bg-gray-50 font-bold">
+                    <select id="inning" class="w-full border rounded p-2 bg-gray-50 font-bold text-center">
                         <option value="1">1回</option><option value="2">2回</option><option value="3">3回</option>
-                        <option value="4">4回</option><option value="5" selected>5回</option><option value="6">6回</option>
+                        <option value="4">4回</option><option value="5">5回</option><option value="6">6回</option>
                         <option value="7">7回</option><option value="8">8回</option><option value="9">9回</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs text-gray-500 font-bold mb-1">ランナー</label>
-                    <select id="runners" class="w-full border rounded p-2 bg-gray-50">
+                    <select id="runners" class="w-full border rounded p-2 bg-gray-50 text-center">
                         <option value="0">なし</option>
                         <option value="1">1塁</option>
                         <option value="2">得点圏</option>
@@ -82,118 +58,102 @@
                     </select>
                 </div>
             </div>
+        </div>
 
-            <div class="text-center mt-4">
-                <div class="text-2xl font-black baystars-text my-2">
-                    DeNA勝率: <span id="winRateDisplay">50</span>%
-                </div>
-                <div class="w-40 h-40 mx-auto">
-                    <canvas id="predictionChart"></canvas>
-                </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm text-center">
+            <h2 class="font-bold text-lg border-b pb-2 baystars-text mb-4">📊 リアルタイム予想</h2>
+            <div class="text-3xl font-black baystars-text mb-4">
+                勝率: <span id="winRateDisplay">50</span>%
+            </div>
+            <div class="w-48 h-48 mx-auto">
+                <canvas id="predictionChart"></canvas>
             </div>
         </div>
 
     </div>
 
     <script>
-        // --- 1. グラフの初期設定 ---
+        // --- 1. スコアの選択肢（0〜30点）をJavaScriptで自動作成 ---
+        const denaSelect = document.getElementById('denaScore');
+        const oppSelect = document.getElementById('oppScore');
+        for (let i = 0; i <= 30; i++) {
+            denaSelect.add(new Option(i + "点", i));
+            oppSelect.add(new Option(i + "点", i));
+        }
+
+        // --- 2. グラフの設定 ---
         const ctx = document.getElementById('predictionChart').getContext('2d');
         let predictionChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: ['DeNA勝利', '相手の勝利/引き分け'],
-                datasets: [{
-                    data: [50, 50],
-                    backgroundColor: ['#0055A5', '#CBD5E1'],
-                    borderWidth: 0
-                }]
+                datasets: [{ data: [50, 50], backgroundColor: ['#0055A5', '#CBD5E1'], borderWidth: 0 }]
             },
             options: { responsive: true, plugins: { legend: { display: false } } }
         });
 
-        // --- 2. 勝率計算ロジック ---
-        function calculateWinRate() {
-            const dena = parseInt(document.getElementById('denaScore').value) || 0;
-            const opp = parseInt(document.getElementById('oppScore').value) || 0;
+        // --- 3. 勝率計算 ＆ データ保存 ---
+        function calculateAndSave() {
+            // 現在の入力値を取得
+            const dena = parseInt(document.getElementById('denaScore').value);
+            const opp = parseInt(document.getElementById('oppScore').value);
             const inning = parseInt(document.getElementById('inning').value);
             const runners = parseInt(document.getElementById('runners').value);
 
+            // ★ スマホ本体（ブラウザ）に入力状況を保存する
+            const gameData = { dena, opp, inning, runners };
+            localStorage.setItem('baystarsGameData', JSON.stringify(gameData));
+
+            // 勝率計算
             let baseRate = 50;
             const scoreDiff = dena - opp;
-
-            // 点数差とイニングの重み（後半ほど点差の影響大）
             baseRate += scoreDiff * (10 + inning * 2);
-
-            // ランナー状況による微調整
             if (runners === 1) baseRate += (scoreDiff >= 0 ? 2 : -2);
             if (runners === 2) baseRate += (scoreDiff >= 0 ? 5 : -5);
             if (runners === 3) baseRate += (scoreDiff >= 0 ? 8 : -8);
-
-            // 1%〜99%の間に収める
             let finalRate = Math.min(Math.max(baseRate, 1), 99);
 
-            // 画面更新
+            // 画面を更新
             document.getElementById('winRateDisplay').innerText = finalRate;
             predictionChart.data.datasets[0].data = [finalRate, 100 - finalRate];
             predictionChart.update();
         }
 
-        // セレクトボックスや数字を手動で変更した時に再計算する
-        document.querySelectorAll('input, select').forEach(el => {
-            el.addEventListener('input', calculateWinRate);
-        });
-
-        // --- 3. JSONデータの読み込みと画面への反映 ---
-        async function loadGameData() {
-            try {
-                const response = await fetch('data.json');
-                const data = await response.json();
-
-                // 試合情報をテキストにセット
-                document.getElementById('matchDate').textContent = `${data.matchInfo.date} ＠${data.matchInfo.stadium}`;
-                document.getElementById('opponentName').textContent = data.matchInfo.opponent;
-                document.getElementById('denaPitcher').textContent = data.pitchers.dena;
-                document.getElementById('oppPitcher').textContent = data.pitchers.opponent;
-
-                // スコアボードの表を組み立てる
-                const headers = document.getElementById('inningHeaders');
-                const tbody = document.getElementById('scoreBody');
-                
-                data.scoreboard.innings.forEach(inning => {
-                    const th = document.createElement('th');
-                    th.className = 'p-1 border';
-                    th.textContent = inning;
-                    headers.insertBefore(th, headers.lastElementChild);
-                });
-
-                let denaRow = `<tr class="font-bold text-blue-700"><td class="p-1 border bg-blue-50">DeNA</td>`;
-                data.scoreboard.denaScores.forEach(score => denaRow += `<td class="p-1 border">${score}</td>`);
-                denaRow += `<td class="p-1 border bg-blue-100 text-base">${data.scoreboard.denaTotal}</td></tr>`;
-
-                let oppRow = `<tr><td class="p-1 border bg-gray-50 text-gray-700">${data.matchInfo.opponent.slice(0,2)}</td>`;
-                data.scoreboard.oppScores.forEach(score => oppRow += `<td class="p-1 border text-gray-700">${score}</td>`);
-                oppRow += `<td class="p-1 border bg-gray-200 font-bold text-base">${data.scoreboard.oppTotal}</td></tr>`;
-
-                tbody.innerHTML = oppRow + denaRow;
-
-                // ★ ここがポイント：JSONの合計得点をシミュレーターの入力欄に自動で入れる
-                document.getElementById('denaScore').value = data.scoreboard.denaTotal;
-                document.getElementById('oppScore').value = data.scoreboard.oppTotal;
-                
-                // 初回の勝率計算を実行（自動入力されたスコアでグラフを描く）
-                calculateWinRate();
-
-            } catch (error) {
-                console.error("データの読み込み失敗", error);
-                document.getElementById('matchDate').textContent = "データの読み込みに失敗しました";
-                // エラー時でも計算ロジック自体は動かしておく
-                calculateWinRate();
+        // --- 4. 前回入力したデータの復元 ---
+        function loadSavedData() {
+            const savedData = localStorage.getItem('baystarsGameData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                document.getElementById('denaScore').value = data.dena;
+                document.getElementById('oppScore').value = data.oppScore || data.opp; // oppScore対応
+                document.getElementById('inning').value = data.inning;
+                document.getElementById('runners').value = data.runners;
             }
+            // 復元したデータで計算を実行
+            calculateAndSave();
         }
 
-        // アプリ起動時にデータを読み込む
-        loadGameData();
+        // --- 5. イベントの登録 ---
+        // 入力を変更した瞬間に計算と保存を実行
+        document.querySelectorAll('select').forEach(el => {
+            el.addEventListener('change', calculateAndSave);
+        });
+
+        // リセットボタンの処理
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if(confirm("スコアとイニングをリセットしますか？")) {
+                document.getElementById('denaScore').value = 0;
+                document.getElementById('oppScore').value = 0;
+                document.getElementById('inning').value = 1;
+                document.getElementById('runners').value = 0;
+                calculateAndSave();
+            }
+        });
+
+        // ページを開いた時に保存データを読み込む
+        loadSavedData();
     </script>
 </body>
 </html>
+
 
