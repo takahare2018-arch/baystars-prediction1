@@ -9,7 +9,6 @@
     <style>
         .baystars-blue { background-color: #0055A5; }
         .baystars-text { color: #0055A5; }
-        /* セレクトボックスをスマホの中央揃えっぽくする調整 */
         select { text-align-last: center; }
     </style>
 </head>
@@ -24,7 +23,7 @@
         <div class="bg-white p-4 rounded-xl shadow-sm space-y-5">
             <h2 class="font-bold text-lg border-b pb-2 text-gray-700 flex justify-between items-center">
                 <span>🎮 試合状況を入力</span>
-                <button id="resetBtn" class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600">リセット</button>
+                <button id="resetBtn" class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600 hover:bg-gray-300">リセット</button>
             </h2>
             
             <div class="flex justify-between items-center gap-4">
@@ -39,18 +38,33 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-3 mt-4">
                 <div>
                     <label class="block text-xs text-gray-500 font-bold mb-1">イニング</label>
-                    <select id="inning" class="w-full border rounded p-2 bg-gray-50 font-bold text-center">
+                    <select id="inning" class="w-full border rounded p-2 bg-gray-50 font-bold">
                         <option value="1">1回</option><option value="2">2回</option><option value="3">3回</option>
                         <option value="4">4回</option><option value="5">5回</option><option value="6">6回</option>
                         <option value="7">7回</option><option value="8">8回</option><option value="9">9回</option>
                     </select>
                 </div>
                 <div>
+                    <label class="block text-xs text-gray-500 font-bold mb-1">表/裏</label>
+                    <select id="topBottom" class="w-full border rounded p-2 bg-gray-50 font-bold">
+                        <option value="top">表 (相手攻撃)</option>
+                        <option value="bottom" selected>裏 (DeNA攻撃)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 font-bold mb-1">アウト</label>
+                    <select id="outs" class="w-full border rounded p-2 bg-gray-50 font-bold text-red-600">
+                        <option value="0">0アウト</option>
+                        <option value="1">1アウト</option>
+                        <option value="2">2アウト</option>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-xs text-gray-500 font-bold mb-1">ランナー</label>
-                    <select id="runners" class="w-full border rounded p-2 bg-gray-50 text-center">
+                    <select id="runners" class="w-full border rounded p-2 bg-gray-50 font-bold text-green-700">
                         <option value="0">なし</option>
                         <option value="1">1塁</option>
                         <option value="2">得点圏</option>
@@ -73,7 +87,7 @@
     </div>
 
     <script>
-        // --- 1. スコアの選択肢（0〜30点）をJavaScriptで自動作成 ---
+        // 1. スコアの選択肢を自動作成
         const denaSelect = document.getElementById('denaScore');
         const oppSelect = document.getElementById('oppScore');
         for (let i = 0; i <= 30; i++) {
@@ -81,7 +95,7 @@
             oppSelect.add(new Option(i + "点", i));
         }
 
-        // --- 2. グラフの設定 ---
+        // 2. グラフの設定
         const ctx = document.getElementById('predictionChart').getContext('2d');
         let predictionChart = new Chart(ctx, {
             type: 'doughnut',
@@ -92,26 +106,53 @@
             options: { responsive: true, plugins: { legend: { display: false } } }
         });
 
-        // --- 3. 勝率計算 ＆ データ保存 ---
+        // 3. 勝率計算 ＆ データ保存（★進化した野球ロジック）
         function calculateAndSave() {
-            // 現在の入力値を取得
             const dena = parseInt(document.getElementById('denaScore').value);
             const opp = parseInt(document.getElementById('oppScore').value);
             const inning = parseInt(document.getElementById('inning').value);
+            const topBottom = document.getElementById('topBottom').value; // 'top' or 'bottom'
+            const outs = parseInt(document.getElementById('outs').value);
             const runners = parseInt(document.getElementById('runners').value);
 
-            // ★ スマホ本体（ブラウザ）に入力状況を保存する
-            const gameData = { dena, opp, inning, runners };
+            // 状態の保存
+            const gameData = { dena, opp, inning, topBottom, outs, runners };
             localStorage.setItem('baystarsGameData', JSON.stringify(gameData));
 
-            // 勝率計算
             let baseRate = 50;
             const scoreDiff = dena - opp;
+            
+            // ① 点数差のベース計算（終盤ほど点差の影響が大きくなる）
             baseRate += scoreDiff * (10 + inning * 2);
-            if (runners === 1) baseRate += (scoreDiff >= 0 ? 2 : -2);
-            if (runners === 2) baseRate += (scoreDiff >= 0 ? 5 : -5);
-            if (runners === 3) baseRate += (scoreDiff >= 0 ? 8 : -8);
-            let finalRate = Math.min(Math.max(baseRate, 1), 99);
+
+            // ② 攻撃チームごとの有利不利を計算
+            const isDeNA_Batting = (topBottom === 'bottom'); // DeNAを後攻(裏)と想定
+            let situationAdvantage = 0;
+
+            if (isDeNA_Batting) {
+                // DeNAの攻撃中：ランナーはプラス、アウトが増えるとマイナス
+                if (runners === 1) situationAdvantage += 3;
+                if (runners === 2) situationAdvantage += 6;
+                if (runners === 3) situationAdvantage += 10;
+                
+                if (outs === 0) situationAdvantage += 2;
+                if (outs === 2) situationAdvantage -= 4; // 2アウトでチャンス減少
+            } else {
+                // 相手の攻撃中（DeNA守備）：ランナーはマイナス、アウトが増えるとプラス（ピンチ脱出）
+                if (runners === 1) situationAdvantage -= 3;
+                if (runners === 2) situationAdvantage -= 6;
+                if (runners === 3) situationAdvantage -= 10;
+                
+                if (outs === 0) situationAdvantage -= 2; // ノーアウトはピンチ
+                if (outs === 2) situationAdvantage += 4; // 2アウトで一安心
+            }
+
+            // 終盤（イニングが進む）ほど、ランナーやアウト状況の重みが増すように係数をかける
+            const inningFactor = 1 + (inning / 5); 
+            baseRate += situationAdvantage * inningFactor;
+
+            // 1%〜99%の間に収める
+            let finalRate = Math.min(Math.max(Math.round(baseRate), 1), 99);
 
             // 画面を更新
             document.getElementById('winRateDisplay').innerText = finalRate;
@@ -119,41 +160,43 @@
             predictionChart.update();
         }
 
-        // --- 4. 前回入力したデータの復元 ---
+        // 4. 保存データの復元
         function loadSavedData() {
             const savedData = localStorage.getItem('baystarsGameData');
             if (savedData) {
                 const data = JSON.parse(savedData);
-                document.getElementById('denaScore').value = data.dena;
-                document.getElementById('oppScore').value = data.oppScore || data.opp; // oppScore対応
-                document.getElementById('inning').value = data.inning;
-                document.getElementById('runners').value = data.runners;
+                document.getElementById('denaScore').value = data.dena || 0;
+                document.getElementById('oppScore').value = data.opp || 0;
+                document.getElementById('inning').value = data.inning || 1;
+                document.getElementById('topBottom').value = data.topBottom || 'bottom';
+                document.getElementById('outs').value = data.outs || 0;
+                document.getElementById('runners').value = data.runners || 0;
             }
-            // 復元したデータで計算を実行
             calculateAndSave();
         }
 
-        // --- 5. イベントの登録 ---
-        // 入力を変更した瞬間に計算と保存を実行
+        // 5. イベント登録
         document.querySelectorAll('select').forEach(el => {
             el.addEventListener('change', calculateAndSave);
         });
 
-        // リセットボタンの処理
         document.getElementById('resetBtn').addEventListener('click', () => {
-            if(confirm("スコアとイニングをリセットしますか？")) {
+            if(confirm("状況を初期化しますか？")) {
                 document.getElementById('denaScore').value = 0;
                 document.getElementById('oppScore').value = 0;
                 document.getElementById('inning').value = 1;
+                document.getElementById('topBottom').value = 'top';
+                document.getElementById('outs').value = 0;
                 document.getElementById('runners').value = 0;
                 calculateAndSave();
             }
         });
 
-        // ページを開いた時に保存データを読み込む
+        // 初期読み込み
         loadSavedData();
     </script>
 </body>
 </html>
+
 
 
