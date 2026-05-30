@@ -1,0 +1,18 @@
+{
+  "matchInfo": {
+    "date": "2026-05-30",
+    "stadium": "横浜スタジアム",
+    "opponent": "阪神タイガース"
+  },
+  "pitchers": {
+    "dena": "東 克樹",
+    "opponent": "村上 頌樹"
+  },
+  "scoreboard": {
+    "innings": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "denaScores": [0, 0, 2, 0, 1, "-", "-", "-", "-"],
+    "oppScores": [0, 1, 0, 0, 0, "-", "-", "-", "-"],
+    "denaTotal": 3,
+    "oppTotal": 1
+  }
+}
