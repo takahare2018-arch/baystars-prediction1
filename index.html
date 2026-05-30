@@ -10,6 +10,24 @@
         .baystars-blue { background-color: #0055A5; }
         .baystars-text { color: #0055A5; }
         select { text-align-last: center; }
+        /* スコア入力欄のデザイン調整（スマホで押しやすく、はみ出さないように） */
+        .score-input {
+            width: 100%;
+            min-width: 28px;
+            height: 32px;
+            text-align: center;
+            background-color: transparent;
+            font-weight: bold;
+            font-size: 16px;
+            outline: none;
+        }
+        .score-input:focus { background-color: #e0f2fe; border-radius: 4px; }
+        /* 数字入力の上下矢印（スピンボタン）を消す */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen pb-10">
@@ -18,35 +36,43 @@
         🌟 DeNA 勝敗予想シミュレーター
     </header>
 
-    <div class="max-w-md mx-auto p-4 space-y-6">
+    <div class="max-w-md mx-auto p-4 space-y-4">
         
-        <div class="bg-white p-4 rounded-xl shadow-sm space-y-5">
-            <h2 class="font-bold text-lg border-b pb-2 text-gray-700 flex justify-between items-center">
-                <span>🎮 試合状況を入力</span>
-                <button id="resetBtn" class="text-xs bg-gray-200 px-2 py-1 rounded text-gray-600 hover:bg-gray-300">リセット</button>
-            </h2>
+        <div class="bg-white p-4 rounded-xl shadow-sm space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h2 class="font-bold text-lg text-gray-700">📋 試合状況</h2>
+                <button id="resetBtn" class="text-xs bg-gray-200 px-3 py-1 rounded text-gray-700 hover:bg-gray-300 font-bold">リセット</button>
+            </div>
 
             <div>
-                <label class="block text-xs text-gray-500 font-bold mb-1">開催地 (先攻/後攻)</label>
                 <select id="homeVisitor" class="w-full border-2 border-blue-200 rounded-lg p-2 bg-white font-bold text-blue-800">
                     <option value="home">🏠 ホーム (DeNA後攻)</option>
                     <option value="visitor">✈️ ビジター (DeNA先攻)</option>
                 </select>
             </div>
-            
-            <div class="flex justify-between items-center gap-4 border-t pt-4">
-                <div class="text-center flex-1">
-                    <label class="block text-xs text-blue-700 font-bold mb-1">DeNA</label>
-                    <select id="denaScore" class="w-full text-2xl font-bold border-2 border-blue-200 rounded-lg p-2 bg-blue-50 text-blue-800"></select>
-                </div>
-                <div class="text-xl font-bold text-gray-400 mt-4">-</div>
-                <div class="text-center flex-1">
-                    <label class="block text-xs text-gray-500 font-bold mb-1">相手</label>
-                    <select id="oppScore" class="w-full text-2xl font-bold border-2 border-gray-200 rounded-lg p-2 bg-gray-50 text-gray-700"></select>
-                </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-3 mt-4">
+            <div class="overflow-x-auto pb-2">
+                <table class="text-sm border-collapse min-w-max w-full table-fixed">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-600 text-xs">
+                            <th class="p-1 border w-14">チーム</th>
+                            <th class="p-1 border w-8">1</th><th class="p-1 border w-8">2</th><th class="p-1 border w-8">3</th>
+                            <th class="p-1 border w-8">4</th><th class="p-1 border w-8">5</th><th class="p-1 border w-8">6</th>
+                            <th class="p-1 border w-8">7</th><th class="p-1 border w-8">8</th><th class="p-1 border w-8">9</th>
+                            <th class="p-1 border font-bold text-red-500 w-10">R</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scoreboardBody">
+                        </tbody>
+                </table>
+                <p class="text-[10px] text-gray-400 mt-1 text-right">※枠をタップして点数を直接入力できます</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm space-y-4">
+            <h2 class="font-bold text-lg border-b pb-2 text-gray-700">⚾ カウント・ランナー</h2>
+            
+            <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs text-gray-500 font-bold mb-1">イニング</label>
                     <select id="inning" class="w-full border rounded p-2 bg-gray-50 font-bold">
@@ -62,31 +88,52 @@
                         <option value="bottom">裏</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-xs text-gray-500 font-bold mb-1">アウト</label>
-                    <select id="outs" class="w-full border rounded p-2 bg-gray-50 font-bold text-red-600">
-                        <option value="0">0アウト</option>
-                        <option value="1">1アウト</option>
-                        <option value="2">2アウト</option>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 bg-gray-900 p-3 rounded-lg text-white">
+                <div class="text-center">
+                    <label class="block text-xs font-bold text-green-400 mb-1">B (ボール)</label>
+                    <select id="balls" class="w-full rounded p-1 text-black font-bold text-center">
+                        <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-xs text-gray-500 font-bold mb-1">ランナー</label>
-                    <select id="runners" class="w-full border rounded p-2 bg-gray-50 font-bold text-green-700">
-                        <option value="0">なし</option>
-                        <option value="1">1塁</option>
-                        <option value="2">得点圏</option>
-                        <option value="3">満塁</option>
+                <div class="text-center">
+                    <label class="block text-xs font-bold text-yellow-400 mb-1">S (ストライク)</label>
+                    <select id="strikes" class="w-full rounded p-1 text-black font-bold text-center">
+                        <option value="0">0</option><option value="1">1</option><option value="2">2</option>
                     </select>
                 </div>
+                <div class="text-center">
+                    <label class="block text-xs font-bold text-red-500 mb-1">O (アウト)</label>
+                    <select id="outs" class="w-full rounded p-1 text-black font-bold text-center">
+                        <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs text-gray-500 font-bold mb-1">ランナー</label>
+                <select id="runners" class="w-full border rounded p-2 bg-gray-50 font-bold text-green-700">
+                    <option value="0">なし</option>
+                    <option value="1">1塁</option>
+                    <option value="2">得点圏 (2塁/3塁)</option>
+                    <option value="3">満塁</option>
+                </select>
             </div>
         </div>
 
         <div class="bg-white p-4 rounded-xl shadow-sm text-center">
             <h2 class="font-bold text-lg border-b pb-2 baystars-text mb-4">📊 リアルタイム予想</h2>
+            <div class="flex justify-center items-end gap-3 mb-2">
+                <div class="text-2xl font-black text-blue-700" id="totalDena">DeNA 0</div>
+                <div class="text-gray-400 font-bold">-</div>
+                <div class="text-2xl font-black text-gray-700" id="totalOpp">相手 0</div>
+            </div>
+            
             <div class="text-3xl font-black baystars-text mb-4">
                 勝率: <span id="winRateDisplay">50</span>%
             </div>
+            
             <div class="w-48 h-48 mx-auto">
                 <canvas id="predictionChart"></canvas>
             </div>
@@ -95,15 +142,12 @@
     </div>
 
     <script>
-        // 1. スコアの選択肢を自動作成
-        const denaSelect = document.getElementById('denaScore');
-        const oppSelect = document.getElementById('oppScore');
-        for (let i = 0; i <= 30; i++) {
-            denaSelect.add(new Option(i + "点", i));
-            oppSelect.add(new Option(i + "点", i));
-        }
+        let denaInnings = ["","","","","","","","",""];
+        let oppInnings = ["","","","","","","","",""];
+        let denaTotalScore = 0;
+        let oppTotalScore = 0;
 
-        // 2. グラフの設定
+        // --- グラフの設定 ---
         const ctx = document.getElementById('predictionChart').getContext('2d');
         let predictionChart = new Chart(ctx, {
             type: 'doughnut',
@@ -111,20 +155,75 @@
                 labels: ['DeNA勝利', '相手の勝利/引き分け'],
                 datasets: [{ data: [50, 50], backgroundColor: ['#0055A5', '#CBD5E1'], borderWidth: 0 }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            options: { responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
         });
 
-        // 3. 勝率計算 ＆ データ保存
+        // --- スコアボードの描画処理 ---
+        function renderScoreboard() {
+            const homeVisitor = document.getElementById('homeVisitor').value;
+            const tbody = document.getElementById('scoreboardBody');
+            tbody.innerHTML = ''; 
+
+            const createRow = (teamName, inningsData, isDeNA) => {
+                let row = `<tr class="${isDeNA ? 'bg-blue-50 text-blue-800 font-bold' : 'bg-white text-gray-700'}">`;
+                row += `<td class="p-1 border text-center text-xs">${teamName}</td>`;
+                
+                // 9回分の入力欄を作成
+                for (let i = 0; i < 9; i++) {
+                    row += `<td class="p-0 border text-center">
+                                <input type="number" inputmode="numeric" class="score-input" 
+                                data-team="${isDeNA ? 'dena' : 'opp'}" data-inning="${i}" value="${inningsData[i]}">
+                            </td>`;
+                }
+                
+                // 合計点の計算
+                const total = inningsData.reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+                if (isDeNA) denaTotalScore = total; else oppTotalScore = total;
+                
+                row += `<td class="p-1 border text-center font-black text-base bg-gray-100">${total}</td></tr>`;
+                return row;
+            };
+
+            // 先攻・後攻に合わせて行の順番を変える
+            if (homeVisitor === 'home') {
+                tbody.innerHTML += createRow('相手', oppInnings, false);
+                tbody.innerHTML += createRow('DeNA', denaInnings, true);
+            } else {
+                tbody.innerHTML += createRow('DeNA', denaInnings, true);
+                tbody.innerHTML += createRow('相手', oppInnings, false);
+            }
+
+            // スコア入力時のイベントを再登録
+            document.querySelectorAll('.score-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const team = e.target.dataset.team;
+                    const innIdx = parseInt(e.target.dataset.inning);
+                    const val = e.target.value;
+                    
+                    if (team === 'dena') denaInnings[innIdx] = val;
+                    else oppInnings[innIdx] = val;
+                    
+                    renderScoreboard(); 
+                    calculateAndSave(); 
+                });
+            });
+
+            // 予想結果エリアの合計スコアを更新
+            document.getElementById('totalDena').innerText = `DeNA ${denaTotalScore}`;
+            document.getElementById('totalOpp').innerText = `相手 ${oppTotalScore}`;
+        }
+
+        // --- 勝率計算とデータの保存 ---
         function calculateAndSave() {
             const homeVisitor = document.getElementById('homeVisitor').value;
-            const dena = parseInt(document.getElementById('denaScore').value);
-            const opp = parseInt(document.getElementById('oppScore').value);
             const inning = parseInt(document.getElementById('inning').value);
             const topBottom = document.getElementById('topBottom').value;
+            const balls = parseInt(document.getElementById('balls').value);
+            const strikes = parseInt(document.getElementById('strikes').value);
             const outs = parseInt(document.getElementById('outs').value);
             const runners = parseInt(document.getElementById('runners').value);
 
-            // ★ ホーム/ビジター設定に合わせて「表/裏」の表記を自動更新
+            // 表裏のテキストを自動変更
             const topOption = document.querySelector('#topBottom option[value="top"]');
             const bottomOption = document.querySelector('#topBottom option[value="bottom"]');
             if (homeVisitor === 'home') {
@@ -135,89 +234,90 @@
                 bottomOption.text = "裏 (相手攻撃)";
             }
 
-            // 状態の保存
-            const gameData = { homeVisitor, dena, opp, inning, topBottom, outs, runners };
+            // localStorageに保存
+            const gameData = { homeVisitor, denaInnings, oppInnings, inning, topBottom, balls, strikes, outs, runners };
             localStorage.setItem('baystarsGameData', JSON.stringify(gameData));
 
+            // 勝率計算
             let baseRate = 50;
-            const scoreDiff = dena - opp;
-            
-            // ① 点数差のベース計算
+            const scoreDiff = denaTotalScore - oppTotalScore;
             baseRate += scoreDiff * (10 + inning * 2);
 
-            // ② 攻撃チームの判定と有利不利の計算
-            let isDeNA_Batting = false;
-            if (homeVisitor === 'home' && topBottom === 'bottom') {
-                isDeNA_Batting = true; // ホームで裏の攻撃
-            } else if (homeVisitor === 'visitor' && topBottom === 'top') {
-                isDeNA_Batting = true; // ビジターで表の攻撃
-            }
-
+            let isDeNA_Batting = (homeVisitor === 'home' && topBottom === 'bottom') || (homeVisitor === 'visitor' && topBottom === 'top');
             let situationAdvantage = 0;
+
             if (isDeNA_Batting) {
-                // DeNA攻撃中
                 if (runners === 1) situationAdvantage += 3;
                 if (runners === 2) situationAdvantage += 6;
                 if (runners === 3) situationAdvantage += 10;
                 if (outs === 0) situationAdvantage += 2;
                 if (outs === 2) situationAdvantage -= 4;
+                situationAdvantage += balls * 0.5;
+                situationAdvantage -= strikes * 0.5;
             } else {
-                // 相手攻撃中（DeNA守備）
                 if (runners === 1) situationAdvantage -= 3;
                 if (runners === 2) situationAdvantage -= 6;
                 if (runners === 3) situationAdvantage -= 10;
                 if (outs === 0) situationAdvantage -= 2;
                 if (outs === 2) situationAdvantage += 4;
+                situationAdvantage -= balls * 0.5;
+                situationAdvantage += strikes * 0.5;
             }
 
-            // イニングに応じた重み付け
             const inningFactor = 1 + (inning / 5); 
             baseRate += situationAdvantage * inningFactor;
-
-            // 1%〜99%の間に収める
             let finalRate = Math.min(Math.max(Math.round(baseRate), 1), 99);
 
-            // 画面を更新
+            // グラフ更新
             document.getElementById('winRateDisplay').innerText = finalRate;
             predictionChart.data.datasets[0].data = [finalRate, 100 - finalRate];
             predictionChart.update();
         }
 
-        // 4. 保存データの復元
+        // --- データの復元 ---
         function loadSavedData() {
             const savedData = localStorage.getItem('baystarsGameData');
             if (savedData) {
                 const data = JSON.parse(savedData);
                 document.getElementById('homeVisitor').value = data.homeVisitor || 'home';
-                document.getElementById('denaScore').value = data.dena || 0;
-                document.getElementById('oppScore').value = data.opp || 0;
+                denaInnings = data.denaInnings || ["","","","","","","","",""];
+                oppInnings = data.oppInnings || ["","","","","","","","",""];
                 document.getElementById('inning').value = data.inning || 1;
-                document.getElementById('topBottom').value = data.topBottom || 'top'; // topをデフォルトに
+                document.getElementById('topBottom').value = data.topBottom || 'top';
+                document.getElementById('balls').value = data.balls || 0;
+                document.getElementById('strikes').value = data.strikes || 0;
                 document.getElementById('outs').value = data.outs || 0;
                 document.getElementById('runners').value = data.runners || 0;
             }
+            renderScoreboard();
             calculateAndSave();
         }
 
-        // 5. イベント登録
+        // --- イベントリスナーの登録 ---
         document.querySelectorAll('select').forEach(el => {
-            el.addEventListener('change', calculateAndSave);
+            el.addEventListener('change', () => {
+                if (el.id === 'homeVisitor') renderScoreboard(); 
+                calculateAndSave();
+            });
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => {
-            if(confirm("状況を初期化しますか？")) {
+            if(confirm("すべての状況とスコアボードを初期化しますか？")) {
                 document.getElementById('homeVisitor').value = 'home';
-                document.getElementById('denaScore').value = 0;
-                document.getElementById('oppScore').value = 0;
+                denaInnings = ["","","","","","","","",""];
+                oppInnings = ["","","","","","","","",""];
                 document.getElementById('inning').value = 1;
                 document.getElementById('topBottom').value = 'top';
+                document.getElementById('balls').value = 0;
+                document.getElementById('strikes').value = 0;
                 document.getElementById('outs').value = 0;
                 document.getElementById('runners').value = 0;
+                renderScoreboard();
                 calculateAndSave();
             }
         });
 
-        // 初期読み込み
+        // アプリ起動時の処理
         loadSavedData();
     </script>
 </body>
